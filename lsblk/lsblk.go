@@ -33,17 +33,18 @@ func PrintBlkidDevices(devices []BlkidDevice, prefix string) {
     }
 }
 
-func GetDeviceInfo() {
+func GetDeviceInfo() []BlkidDevice {
     out, err := exec.Command("lsblk", "--json").Output()
     if err != nil {
         log.Fatal(err)
     }
 
-    var devs Blkid
-    err = json.Unmarshal(out, &devs)
+    var blkid_data Blkid
+    err = json.Unmarshal(out, &blkid_data)
     if err != nil {
         log.Fatal(err)
     }
 
-    PrintBlkidDevices(devs.Blockdevices, string(""))
+    //PrintBlkidDevices(blkid_data.Blockdevices, string(""))
+    return blkid_data.Blockdevices
 }
