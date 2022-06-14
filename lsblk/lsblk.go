@@ -7,36 +7,30 @@ import (
     "os/exec"
 )
 
-// Use a json.RawMessage for Children, then unmarshal that separately;
-// Maybe also define a DeviceInfo struct, then use it to avoid duplication;
+type BlkidDevice struct {
+    Name        string `json:"name"`
+    Majmin      string `json:"maj:min"`
+    Size        string `json:"size"`
+    Type        string `json:"type"`
+    Mountpoints []string `json:"mountpoints"`
+    Removable   bool `json:"rm"`
+    ReadOnly    bool `json:"ro"`
+    Children    []BlkidDevice `json:"children"`
+}
+
 type Blkid struct {
-    Blockdevices []struct {
-        Name        string `json:"name"`
-        Majmin      string `json:"maj:min"`
-        Size        string `json:"size"`
-        Type        string `json:"type"`
-        Mountpoints []string `json:"mountpoints"`
-        Removable   bool `json:"rm"`
-        ReadOnly    bool `json:"ro"`
-        Children []struct {
-            Name        string `json:"name"`
-            Majmin      string `json:"maj:min"`
-            Size        string `json:"size"`
-            Type        string `json:"type"`
-            Mountpoints []string `json:"mountpoints"`
-            Removable   bool `json:"rm"`
-            ReadOnly    bool `json:"ro"`
-            Children []struct {
-                Name        string `json:"name"`
-                Majmin      string `json:"maj:min"`
-                Size        string `json:"size"`
-                Type        string `json:"type"`
-                Mountpoints []string `json:"mountpoints"`
-                Removable   bool `json:"rm"`
-                ReadOnly    bool `json:"ro"`
-            }
-        } `json:"children"`
-    } `json:"blockdevices"`
+    Blockdevices []BlkidDevice `json:"blockdevices"`
+}
+
+func PrintBlkidDevices(devices []BlkidDevice, prefix string) {
+    for _, device := range devices {
+        fmt.Printf("%v%v: %v %v", prefix, device.Name, device.Size, device.Type)
+        if len(device.Mountpoints[0]) > 0 {
+            fmt.Printf(" [%v]", device.Mountpoints[0])
+        }
+        fmt.Printf("\n")
+        PrintBlkidDevices(device.Children, prefix + string("  "))
+    }
 }
 
 func GetDeviceInfo() {
@@ -51,25 +45,5 @@ func GetDeviceInfo() {
         log.Fatal(err)
     }
 
-    for _, v := range devs.Blockdevices {
-        fmt.Printf("%v", v.Name)
-        if v.Mountpoints != nil {
-            fmt.Printf("  %v", v.Mountpoints[0])
-        }
-        fmt.Printf("\n")
-        for _, c := range v.Children {
-            fmt.Printf("  %v", c.Name)
-            if c.Mountpoints != nil {
-                fmt.Printf("  %v", c.Mountpoints[0])
-            }
-            fmt.Printf("\n")
-            for _, d := range c.Children {
-                fmt.Printf("    %v", d.Name)
-                if d.Mountpoints != nil {
-                    fmt.Printf("  %v", d.Mountpoints[0])
-                }
-                fmt.Printf("\n")
-            }
-        }
-    }
+    PrintBlkidDevices(devs.Blockdevices, string(""))
 }
